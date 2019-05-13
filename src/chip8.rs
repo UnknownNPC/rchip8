@@ -87,36 +87,92 @@ impl<'a> Emulation for Chip8<'a> {
             let new_opcode = (*memory_unit_1 as u16) << 8 | *memory_unit_2 as u16;
             self.opcode = new_opcode;
 
+            // []XXX
             match self.opcode & 0xF000 {
                 0x0000 => {
-                    println!("0x0000")
-                    // Calls RCA 1802 program at address NNN.
+                    match self.opcode & 0x000F {
+                        // [0]0E[0] - Clear screen
+                        0x0000 =>
+
+                        // [0]0E[E] - Return from subroutine
+                        0x000E =>
+
+                        _ => println!("Unknown command: {}", self.opcode)
+                    }
+
+                    println!("0x0000");
+                    println!("Calls RCA 1802 program at address NNN")
                 }
+                // [1]NNN - Jumps to address NNN
                 0x1000 => {
-                    println!("0x1000");
-                    // Jumps to address NNN.
                     self.pc = (self.opcode & 0x0FFF) as usize;
                 }
+                // [2]NNN - Calls subroutine at NNN
                 0x2000 => {
-                    println!("0x2000");
-                    // Calls subroutine at NNN.
-                    // TODO: test
                     self.stack[self.sp] = self.pc as u16;
                     self.sp = self.sp + 1;
                     self.pc = (self.opcode & 0x0FFF) as usize;
                 }
+                // [3]XNN - Skips the next instruction if VX equals NN.
+                0x3000 => {
+
+                }
+                // [4]XNN - Skips the next instruction if VX does not equal NN.
+                0x4000 => {
+
+                }
+                // [5]XY0 - Skips the next instruction if VX equals VY.
+                0x5000 => {
+
+                }
+                // [6]XNN - Sets VX to NN.
+                0x6000 => {
+
+                }
+                // [7]XNN - Adds NN to VX.
+                0x7000 => {
+
+                }
+
+                // 8XY[]
+                0x8000 => {
+
+                    match self.opcode & 0x00F {
+                        // [8]XY[0] - Sets VX to the value of VY.
+                        0x0000 =>
+                        // [8]XY[1] - Sets VX to (VX OR VY).
+                        0x0001 =>
+                        // [8]XY[2] - Sets VX to (VX AND VY).
+                        0x0002 =>
+                        // [8]XY[3] - Sets VX to (VX XOR VY).
+                        0x0003 =>
+                        // [8]XY[4] - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
+                        0x0004 =>
+                        // [8]XY[5] - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+                        0x0005 =>
+                        // [8]XY[6] - Shifts VX right by one. VF is set to the value of the least significant bit of VX before the shift.
+                        0x0006 =>
+                        // [8]XY[7] -Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
+                        0x0007 =>
+                        // [8]XY[E] - Shifts VX left by one. VF is set to the value of the most significant bit of VX before the shift.
+                        0x000E =>
+                        _ =>
+                    }
+
+                }
+
+                // 0x0009
+
+
                 0xA000 => {
-                    println!("0xA000");
                     self.i = self.opcode & 0x0FFF;
                     self.pc = self.pc + 2;
                 }
                 0xB000 => {
-                    println!("0xB000");
                     self.pc = ((self.opcode & 0x0FFF) + self.v[0] as u16) as usize
                 }
                 _ => {
-                    println!("Jump +2");
-                    self.pc = self.pc + 2;
+                    panic!("Unknown command")
                 }
             }
         } else {
