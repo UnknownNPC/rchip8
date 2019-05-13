@@ -115,31 +115,49 @@ impl<'a> Emulation for Chip8<'a> {
                 }
                 // [3]XNN - Skips the next instruction if VX equals NN.
                 0x3000 => {
-
+                    if self.v[self.opcode & 0x0F00 >> 8] == self.opcode & 0x00FF {
+                        self.pc = self.pc + 4;
+                    } else {
+                        self.pc = self.pc + 2;
+                    }
                 }
                 // [4]XNN - Skips the next instruction if VX does not equal NN.
                 0x4000 => {
-
+                    if self.v[self.opcode & 0x0F00 >> 8] != self.opcode & 0x00FF {
+                        self.pc = self.pc + 4;
+                    } else {
+                        self.pc = self.pc + 2;
+                    }
                 }
                 // [5]XY0 - Skips the next instruction if VX equals VY.
                 0x5000 => {
-
+                    if self.v[self.opcode & 0x0F00 >> 8] == self.v[self.opcode & 0x00F0 >> 4] {
+                        self.pc = self.pc + 4;
+                    } else {
+                        self.pc = self.pc + 2;
+                    }
                 }
                 // [6]XNN - Sets VX to NN.
                 0x6000 => {
-
+                    self.v[self.opcode & 0x0F00 >> 8] = self.opcode & 0x00FF;
+                    self.pc = self.pc + 2;
                 }
                 // [7]XNN - Adds NN to VX.
                 0x7000 => {
-
+                    let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+                    let vx_value = self.v[vx_index];
+                    self.v[vx_index] = vx_value + self.opcode & 0x00FF;
+                    self.pc = self.pc + 2;
                 }
 
                 // 8XY[]
                 0x8000 => {
-
                     match self.opcode & 0x00F {
                         // [8]XY[0] - Sets VX to the value of VY.
-                        0x0000 =>
+                        0x0000 => {
+                            self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4]
+                            self.pc = self.pc + 2;
+                        }
                         // [8]XY[1] - Sets VX to (VX OR VY).
                         0x0001 =>
                         // [8]XY[2] - Sets VX to (VX AND VY).
