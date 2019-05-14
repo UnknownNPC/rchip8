@@ -155,19 +155,41 @@ impl<'a> Emulation for Chip8<'a> {
                     match self.opcode & 0x00F {
                         // [8]XY[0] - Sets VX to the value of VY.
                         0x0000 => {
-                            self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4]
+                            self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4];
                             self.pc = self.pc + 2;
                         }
                         // [8]XY[1] - Sets VX to (VX OR VY).
-                        0x0001 =>
+                        0x0001 => {
+                            let vx_index = self.opcode & 0x0F00 >> 8;
+                            let vx_value = self.v[vx_index];
+                            self.v[vx_index] = vx_value | self.v[self.opcode & 0x00F0 >> 4];
+                        }
                         // [8]XY[2] - Sets VX to (VX AND VY).
-                        0x0002 =>
+                        0x0002 => {
+                            let vx_index = self.opcode & 0x0F00 >> 8;
+                            let vx_value = self.v[vx_index];
+                            self.v[vx_index] = vx_value & self.v[self.opcode & 0x00F0 >> 4];
+                        }
                         // [8]XY[3] - Sets VX to (VX XOR VY).
-                        0x0003 =>
+                        0x0003 => {
+                            let vx_index = self.opcode & 0x0F00 >> 8;
+                            let vx_value = self.v[vx_index];
+                            self.v[vx_index] = vx_value ^ self.v[self.opcode & 0x00F0 >> 4];
+                        }
                         // [8]XY[4] - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
-                        0x0004 =>
+                        0x0004 => {
+                            self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4];
+                            if self.v[self.opcode & 0x00F0 >> 4] > (0xFF - self.v[self.opcode & 0x0F00 >> 8]) {
+                                self.v[0xF] = 1; //carry
+                            } else {
+                                self.v[0xF] = 0;
+                            }
+                            self.pc = self.pc + 2;
+                        }
                         // [8]XY[5] - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
-                        0x0005 =>
+                        0x0005 => {
+
+                        }
                         // [8]XY[6] - Shifts VX right by one. VF is set to the value of the least significant bit of VX before the shift.
                         0x0006 =>
                         // [8]XY[7] -Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
