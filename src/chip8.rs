@@ -93,10 +93,22 @@ impl<'a> Emulation for Chip8<'a> {
                 0x0000 => {
                     match self.opcode & 0x000F {
                         // [0]0E[0] - Clear screen
-                        0x0000 =>
-
+                        0x0000 => {
+                            for (i, row) in self.gfx.iter_mut().enumerate() {
+                                for (j, col) in row.iter_mut().enumerate() {
+                                    self.gfx[i][j] = 0;
+                                }
+                            }
+                            pc += 2;
+                            break;
+                        }
                         // [0]0E[E] - Return from subroutine
-                            0x000E =>
+                        0x000E => {
+                            self.sp = self.sp - 1;
+                            self.pc = self.stack[self.sp] as usize;
+                            pc += 2;
+                            break;
+                        }
 
                         _ => {
                             println!("Unknown command: {}", self.opcode);
@@ -278,6 +290,11 @@ impl<'a> Emulation for Chip8<'a> {
                     self.v[self.opcode & 0x0F00 >> 8] = (rand::random() % (0xFF + 1)) & (self.opcode & 0x00FF);
                     self.pc = self.pc + 2;
                     break;
+                }
+
+                //[D]XYN - Draw(Vx,Vy,N)
+                0xD000 => {
+
                 }
                 _ => {
                     panic!("Unknown command")
