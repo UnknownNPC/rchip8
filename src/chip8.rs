@@ -1,5 +1,6 @@
 use std::fs::File;
 use std::io::{BufReader, BufRead};
+use rand::Rng;
 
 pub struct Chip8<'a> {
     name: &'a str,
@@ -95,52 +96,63 @@ impl<'a> Emulation for Chip8<'a> {
                         0x0000 =>
 
                         // [0]0E[E] - Return from subroutine
-                        0x000E =>
+                            0x000E =>
 
-                        _ => println!("Unknown command: {}", self.opcode)
+                        _ => {
+                            println!("Unknown command: {}", self.opcode);
+                            break;
+                        }
                     }
-
                     println!("0x0000");
                     println!("Calls RCA 1802 program at address NNN")
                 }
                 // [1]NNN - Jumps to address NNN
                 0x1000 => {
                     self.pc = (self.opcode & 0x0FFF) as usize;
+                    break;
                 }
                 // [2]NNN - Calls subroutine at NNN
                 0x2000 => {
                     self.stack[self.sp] = self.pc as u16;
                     self.sp = self.sp + 1;
                     self.pc = (self.opcode & 0x0FFF) as usize;
+                    break;
                 }
                 // [3]XNN - Skips the next instruction if VX equals NN.
                 0x3000 => {
                     if self.v[self.opcode & 0x0F00 >> 8] == self.opcode & 0x00FF {
                         self.pc = self.pc + 4;
+                        break;
                     } else {
                         self.pc = self.pc + 2;
+                        brea;
                     }
                 }
                 // [4]XNN - Skips the next instruction if VX does not equal NN.
                 0x4000 => {
                     if self.v[self.opcode & 0x0F00 >> 8] != self.opcode & 0x00FF {
                         self.pc = self.pc + 4;
+                        break;
                     } else {
                         self.pc = self.pc + 2;
+                        break;
                     }
                 }
                 // [5]XY0 - Skips the next instruction if VX equals VY.
                 0x5000 => {
                     if self.v[self.opcode & 0x0F00 >> 8] == self.v[self.opcode & 0x00F0 >> 4] {
                         self.pc = self.pc + 4;
+                        break;
                     } else {
                         self.pc = self.pc + 2;
+                        break;
                     }
                 }
                 // [6]XNN - Sets VX to NN.
                 0x6000 => {
                     self.v[self.opcode & 0x0F00 >> 8] = self.opcode & 0x00FF;
                     self.pc = self.pc + 2;
+                    break;
                 }
                 // [7]XNN - Adds NN to VX.
                 0x7000 => {
@@ -148,6 +160,7 @@ impl<'a> Emulation for Chip8<'a> {
                     let vx_value = self.v[vx_index];
                     self.v[vx_index] = vx_value + self.opcode & 0x00FF;
                     self.pc = self.pc + 2;
+                    break;
                 }
 
                 // 8XY[]
@@ -157,24 +170,31 @@ impl<'a> Emulation for Chip8<'a> {
                         0x0000 => {
                             self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4];
                             self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[1] - Sets VX to (VX OR VY).
                         0x0001 => {
                             let vx_index = self.opcode & 0x0F00 >> 8;
                             let vx_value = self.v[vx_index];
                             self.v[vx_index] = vx_value | self.v[self.opcode & 0x00F0 >> 4];
+                            self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[2] - Sets VX to (VX AND VY).
                         0x0002 => {
                             let vx_index = self.opcode & 0x0F00 >> 8;
                             let vx_value = self.v[vx_index];
                             self.v[vx_index] = vx_value & self.v[self.opcode & 0x00F0 >> 4];
+                            self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[3] - Sets VX to (VX XOR VY).
                         0x0003 => {
                             let vx_index = self.opcode & 0x0F00 >> 8;
                             let vx_value = self.v[vx_index];
                             self.v[vx_index] = vx_value ^ self.v[self.opcode & 0x00F0 >> 4];
+                            self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[4] - Adds VY to VX. VF is set to 1 when there's a carry, and to 0 when there isn't.
                         0x0004 => {
@@ -185,31 +205,79 @@ impl<'a> Emulation for Chip8<'a> {
                                 self.v[0xF] = 0;
                             }
                             self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[5] - VY is subtracted from VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
                         0x0005 => {
-
+                            if self.v[self.opcode & 0x00F0 >> 4] > self.v[self.opcode & 0x0F00 >> 8] {
+                                self.v[0xF] = 0; //borrow
+                            } else {
+                                self.v[0xF] = 1;
+                            }
+                            let vx_index = self.opcode & 0x0F00 >> 8;
+                            self.v[vx_index] = self.v[vx_index] - self.v[self.opcode & 0x00F0 >> 4];
+                            self.pc = self.pc + 2;
+                            break;
                         }
                         // [8]XY[6] - Shifts VX right by one. VF is set to the value of the least significant bit of VX before the shift.
-                        0x0006 =>
+                        0x0006 => {
+                            self.v[0xF] = self.v[(self.opcode & 0x0F00) >> 8] & 0x1;
+                            let vx_index = (self.opcode & 0x0F00) >> 8;
+                            self.v[vx_index] = self.v[vx_index] >> 1;
+                            self.pc = self.pc + 2;
+                            break;
+                        }
                         // [8]XY[7] -Sets VX to VY minus VX. VF is set to 0 when there's a borrow, and 1 when there isn't.
-                        0x0007 =>
+                        0x0007 => {
+                            if self.v[self.opcode & 0x00F0 >> 4] > self.v[self.opcode & 0x0F00 >> 8] {
+                                self.v[0xF] = 0; //borrow
+                            } else {
+                                self.v[0xF] = 1;
+                            }
+                            let vx_index = (self.opcode & 0x0F00) >> 8;
+                            self.v(vx_index) = self.v(self.opcode & 0x0F0 >> 4) - self.v(vx_index);
+                            self.pc = self.pc + 2;
+                            break;
+                        }
                         // [8]XY[E] - Shifts VX left by one. VF is set to the value of the most significant bit of VX before the shift.
-                        0x000E =>
-                        _ =>
+                        0x000E => {
+                            self.v[0xF] = self.v[(self.opcode & 0x0F00) >> 8] >> 7;
+                            let vx_index = self.opcode & 0x0F00;
+                            self.v[vx_index] = self.v[vx_index] << 1;
+                            self.pc = self.pc + 2;
+                            break;
+                        }
+                        _ => {
+                            println!("Unknown command: {}", self.opcode);
+                            break;
+                        }
                     }
-
                 }
 
-                // 0x0009
-
+                // [9]XY0 - Skips the next instruction if VX doesn't equal VY.
+                0x9000 => {
+                    if self.v[self.opcode & 0x0F00] == self.v[self.opcode & 0x00F0] {
+                        self.pc = self.pc + 2;
+                    } else {
+                        self.pc = self.pc + 4;
+                    }
+                    break;
+                }
 
                 0xA000 => {
                     self.i = self.opcode & 0x0FFF;
                     self.pc = self.pc + 2;
+                    break;
                 }
                 0xB000 => {
                     self.pc = ((self.opcode & 0x0FFF) + self.v[0] as u16) as usize
+                    break;
+                }
+                // [C]XNN - Sets VX to a random number, masked by NN.
+                0xC000 => {
+                    self.v[self.opcode & 0x0F00 >> 8] = (rand::random() % (0xFF + 1)) & (self.opcode & 0x00FF);
+                    self.pc = self.pc + 2;
+                    break;
                 }
                 _ => {
                     panic!("Unknown command")
