@@ -1,8 +1,8 @@
-use chip8::Chip8;
-use chip8::Emulation;
-use std::fs::File;
-
 mod chip8;
+
+use chip8::Chip8;
+use chip8::ActionInterface;
+use std::fs::File;
 
 fn main() {
     let file = File::open("demo/Maze_David_Winter_199x.ch8").unwrap();
