@@ -1,5 +1,5 @@
 pub trait ActionInterface {
-    fn emulate_cycle(&self);
+    fn emulate_cycle(&mut self);
     fn set_keys();
 }
 

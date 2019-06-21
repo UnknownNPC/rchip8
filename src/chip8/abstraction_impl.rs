@@ -1,9 +1,10 @@
-use rand::Rng;
+extern crate rand;
 
 use chip8::abstraction::Action;
 use chip8::abstraction::ActionInterface;
 
 use chip8::structure::Chip8;
+use self::rand::Rng;
 
 impl<'a> Action for Chip8<'a> {
     fn current_op(&self) -> u16 {
@@ -24,9 +25,9 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_00E0(&mut self) {
-        for (i, row) in self.gfx.iter_mut().enumerate() {
-            for (j, col) in row.iter_mut().enumerate() {
-                self.gfx[i][j] = 0;
+        for row in self.gfx.iter_mut() {
+            for cel in row.iter_mut() {
+                *cel = 0;
             }
         }
         self.pc = self.pc + 2;
@@ -49,7 +50,8 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_3XNN(&mut self) {
-        if self.v[self.opcode & 0x0F00 >> 8] == self.opcode & 0x00FF {
+        let xn_index = (self.opcode & 0x0F00 >> 8) as usize;
+        if self.v[xn_index] == (self.opcode & 0x00FF) as u8 {
             self.pc = self.pc + 4;
         } else {
             self.pc = self.pc + 2;
@@ -57,7 +59,8 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_4XNN(&mut self) {
-        if self.v[self.opcode & 0x0F00 >> 8] != self.opcode & 0x00FF {
+        let x_index = (self.opcode & 0x0F00 >> 8) as usize;
+        if self.v[x_index] != (self.opcode & 0x00FF) as u8 {
             self.pc = self.pc + 4;
         } else {
             self.pc = self.pc + 2;
@@ -65,7 +68,9 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_5XY0(&mut self) {
-        if self.v[self.opcode & 0x0F00 >> 8] == self.v[self.opcode & 0x00F0 >> 4] {
+        let x_value = (self.opcode & 0x0F00 >> 8) as usize;
+        let y_value = (self.opcode & 0x00F0 >> 4) as usize;
+        if self.v[x_value] == self.v[y_value] {
             self.pc = self.pc + 4;
         } else {
             self.pc = self.pc + 2;
@@ -73,46 +78,51 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_6XNN(&mut self) {
-        self.v[self.opcode & 0x0F00 >> 8] = self.opcode & 0x00FF;
+        let x_value = (self.opcode & 0x0F00 >> 8) as usize;
+        self.v[x_value] = (self.opcode & 0x00FF) as u8;
         self.pc = self.pc + 2;
     }
 
     fn op_7XNN(&mut self) {
         let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
         let vx_value = self.v[vx_index];
-        self.v[vx_index] = vx_value + self.opcode & 0x00FF as u8;
+        self.v[vx_index] = vx_value + (self.opcode & 0x00FF) as u8;
         self.pc = self.pc + 2;
     }
 
     fn op_8XY0(&mut self) {
-        self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4];
+        let x_value = (self.opcode & 0x0F00 >> 8) as usize;
+        let y_value = (self.opcode & 0x00F0 >> 4) as usize;
+        self.v[x_value] = self.v[y_value];
         self.pc = self.pc + 2;
     }
 
     fn op_8XY1(&mut self) {
-        let vx_index = self.opcode & 0x0F00 >> 8;
-        let vx_value = self.v[vx_index];
-        self.v[vx_index] = vx_value | self.v[self.opcode & 0x00F0 >> 4];
+        let vx_value = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_value = (self.opcode & 0x00F0 >> 4) as usize;
+        self.v[vx_value] = self.v[vx_value] | self.v[vy_value];
         self.pc = self.pc + 2;
     }
 
     fn op_8XY2(&mut self) {
-        let vx_index = self.opcode & 0x0F00 >> 8;
-        let vx_value = self.v[vx_index];
-        self.v[vx_index] = vx_value & self.v[self.opcode & 0x00F0 >> 4];
+        let vx_value = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_value = (self.opcode & 0x00F0 >> 4) as usize;
+        self.v[vx_value] = self.v[vx_value] & self.v[vy_value];
         self.pc = self.pc + 2;
     }
 
     fn op_8XY3(&mut self) {
-        let vx_index = self.opcode & 0x0F00 >> 8;
-        let vx_value = self.v[vx_index];
-        self.v[vx_index] = vx_value ^ self.v[self.opcode & 0x00F0 >> 4];
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_index = (self.opcode & 0x00F0 >> 4) as usize;
+        self.v[vx_index] = self.v[vx_index] ^ self.v[vy_index];
         self.pc = self.pc + 2;
     }
 
     fn op_8XY4(&mut self) {
-        self.v[self.opcode & 0x0F00 >> 8] = self.v[self.opcode & 0x00F0 >> 4];
-        if self.v[self.opcode & 0x00F0 >> 4] > (0xFF - self.v[self.opcode & 0x0F00 >> 8]) {
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_index = (self.opcode & 0x0F00 >> 4) as usize;
+        self.v[vx_index] = self.v[vy_index];
+        if self.v[vy_index] > (0xFF - self.v[vx_index]) {
             self.v[0xF] = 1; //carry
         } else {
             self.v[0xF] = 0;
@@ -121,43 +131,48 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_8XY5(&mut self) {
-        if self.v[self.opcode & 0x00F0 >> 4] > self.v[self.opcode & 0x0F00 >> 8] {
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_index = (self.opcode & 0x00F0 >> 4) as usize;
+        if self.v[vy_index] > self.v[vx_index] {
             self.v[0xF] = 0; //borrow
         } else {
             self.v[0xF] = 1;
         }
-        let vx_index = self.opcode & 0x0F00 >> 8;
-        self.v[vx_index] = self.v[vx_index] - self.v[self.opcode & 0x00F0 >> 4];
+        self.v[vx_index] = self.v[vx_index] - self.v[vy_index];
         self.pc = self.pc + 2;
     }
 
     fn op_8XY6(&mut self) {
-        self.v[0xF] = self.v[(self.opcode & 0x0F00) >> 8] & 0x1;
-        let vx_index = (self.opcode & 0x0F00) >> 8;
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        self.v[0xF] = self.v[vx_index] & 0x1;
         self.v[vx_index] = self.v[vx_index] >> 1;
         self.pc = self.pc + 2;
     }
 
     fn op_8XY7(&mut self) {
-        if self.v[self.opcode & 0x00F0 >> 4] > self.v[self.opcode & 0x0F00 >> 8] {
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_index = (self.opcode & 0x00F0 >> 4) as usize;
+
+        if self.v[vy_index] > self.v[vx_index] {
             self.v[0xF] = 0; //borrow
         } else {
             self.v[0xF] = 1;
         }
-        let vx_index = (self.opcode & 0x0F00) >> 8;
-        self.v[vx_index] = self.v[self.opcode & 0x0F0 >> 4] - self.v[vx_index];
+        self.v[vx_index] = self.v[vy_index] - self.v[vx_index];
         self.pc = self.pc + 2;
     }
 
     fn op_8XYE(&mut self) {
-        self.v[0xF] = self.v[(self.opcode & 0x0F00) >> 8] >> 7;
-        let vx_index = self.opcode & 0x0F00;
+        let vx_index = (self.opcode & 0x0F00) as usize;
+        self.v[0xF] = self.v[vx_index >> 8] >> 7;
         self.v[vx_index] = self.v[vx_index] << 1;
         self.pc = self.pc + 2;
     }
 
     fn op_9XY0(&mut self) {
-        if self.v[self.opcode & 0x0F00] == self.v[self.opcode & 0x00F0] {
+        let vx_index = (self.opcode & 0x0F00) as usize;
+        let vy_index = (self.opcode & 0x00F0) as usize;
+        if self.v[vx_index] == self.v[vy_index] {
             self.pc = self.pc + 2;
         } else {
             self.pc = self.pc + 4;
@@ -174,7 +189,8 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_CXNN(&mut self) {
-        self.v[self.opcode & 0x0F00 >> 8] = (rand::random() % (0xFF + 1)) & (self.opcode & 0x00FF);
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        self.v[vx_index] = (rand::random::<u8>() % 0xFF) & (self.opcode & 0x00FF) as u8;
         self.pc = self.pc + 2;
     }
 
@@ -228,144 +244,118 @@ impl<'a> Action for Chip8<'a> {
 }
 
 impl<T: Action> ActionInterface for T {
-    fn emulate_cycle(&self) {
-        unimplemented!()
-//        // []XXX
-//        match self. & 0xF000 {
-//            0x0000 => {
-//                match self.opcode & 0x000F {
-//                    0x0000 => {
-//                        self.op_00E0();
-//                        break;
-//                    }
-//                    0x000E => {
-//                        self.op_00EE();
-//                        break;
-//                    }
-//                    _ => {
-//                        println!("Unknown command: {}", self.opcode);
-//                        break;
-//                    }
-//                }
-//                println!("0x0000");
-//                println!("Calls RCA 1802 program at address NNN")
-//            }
-//            0x1000 => {
-//                self.op_1NNN();
-//                break;
-//            }
-//            0x2000 => {
-//                self.op_2NNN();
-//                break;
-//            }
-//            0x3000 => {
-//                self.op_3NNN();
-//                break;
-//            }
-//            //4XNN
-//            0x4000 => {
-//                self.op_4NNN();
-//                break;
-//            }
-//            //5XY0
-//            0x5000 => {
-//                self.op_5XY0();
-//                break;
-//            }
-//            //6XNN
-//            0x6000 => {
-//                self.op_6XNN();
-//                break;
-//            }
-//            //7XNN
-//            0x7000 => {
-//                self.op_7XNN();
-//                break;
-//            }
-//            //8XY[]
-//            0x8000 => {
-//                match self.opcode & 0x00F {
-//                    //8XY0
-//                    0x0000 => {
-//                        self.8XY0();
-//                        break;
-//                    }
-//                    //8XY1
-//                    0x0001 => {
-//                        self.op_8XY1();
-//                        break;
-//                    }
-//                    //8XY2
-//                    0x0002 => {
-//                        self.op_8XY2();
-//                        break;
-//                    }
-//                    //8XY3
-//                    0x0003 => {
-//                        self.op_8XY3();
-//                        break;
-//                    }
-//                    //8XY4
-//                    0x0004 => {
-//                        self.op_8XY4();
-//                        break;
-//                    }
-//                    //8XY5
-//                    0x0005 => {
-//                        self.op_8XY5();
-//                        break;
-//                    }
-//                    //8XY6
-//                    0x0006 => {
-//                        self.op_8XY6();
-//                        break;
-//                    }
-//                    //8XY7
-//                    0x0007 => {
-//                        self.op_8XY7();
-//                        break;
-//                    }
-//                    //8XYE
-//                    0x000E => {
-//                        self.op_8XYE();
-//                        break;
-//                    }
-//                    _ => {
-//                        println!("Unknown command: {}", self.opcode);
-//                        break;
-//                    }
-//                }
-//            }
-//
-//            //9XY0
-//            0x9000 => {
-//                self.op_9XY0();
-//                break;
-//            }
-//            //ANNN
-//            0xA000 => {
-//                self.op_ANNN();
-//                break;
-//            }
-//            //BNNN
-//            0xB000 => {
-//                self.op_BNNN();
-//                break;
-//            }
-//            //CXNN
-//            0xC000 => {
-//                self.op_CXNN();
-//                break;
-//            }
-//
-//            //DXYN
-//            0xD000 => {
-//                self.op_DXYN();
-//            }
-//            _ => {
-//                panic!("Unknown command")
-//            }
-//        }
+    fn emulate_cycle(&mut self) {
+        // []XXX
+        match self.current_op() & 0xF000 {
+            0x0000 => {
+                match self.current_op() & 0x000F {
+                    0x0000 => {
+                        self.op_00E0();
+                    }
+                    0x000E => {
+                        self.op_00EE();
+                    }
+                    _ => {
+                        println!("Unknown command: {}", self.current_op());
+                    }
+                }
+                println!("0x0000");
+                println!("Calls RCA 1802 program at address NNN")
+            }
+            0x1000 => {
+                self.op_1NNN();
+            }
+            0x2000 => {
+                self.op_2NNN();
+            }
+            0x3000 => {
+                self.op_3XNN();
+            }
+            //4XNN
+            0x4000 => {
+                self.op_4XNN();
+            }
+            //5XY0
+            0x5000 => {
+                self.op_5XY0();
+            }
+            //6XNN
+            0x6000 => {
+                self.op_6XNN();
+            }
+            //7XNN
+            0x7000 => {
+                self.op_7XNN();
+            }
+            //8XY[]
+            0x8000 => {
+                match self.current_op() & 0x00F {
+                    //8XY0
+                    0x0000 => {
+                        self.op_8XY0();
+                    }
+                    //8XY1
+                    0x0001 => {
+                        self.op_8XY1();
+                    }
+                    //8XY2
+                    0x0002 => {
+                        self.op_8XY2();
+                    }
+                    //8XY3
+                    0x0003 => {
+                        self.op_8XY3();
+                    }
+                    //8XY4
+                    0x0004 => {
+                        self.op_8XY4();
+                    }
+                    //8XY5
+                    0x0005 => {
+                        self.op_8XY5();
+                    }
+                    //8XY6
+                    0x0006 => {
+                        self.op_8XY6();
+                    }
+                    //8XY7
+                    0x0007 => {
+                        self.op_8XY7();
+                    }
+                    //8XYE
+                    0x000E => {
+                        self.op_8XYE();
+                    }
+                    _ => {
+                        println!("Unknown command: {}", self.current_op());
+                    }
+                }
+            }
+            //9XY0
+            0x9000 => {
+                self.op_9XY0();
+            }
+            //ANNN
+            0xA000 => {
+                self.op_ANNN();
+            }
+            //BNNN
+            0xB000 => {
+                self.op_BNNN();
+            }
+            //CXNN
+            0xC000 => {
+                self.op_CXNN();
+            }
+
+            //DXYN
+            0xD000 => {
+                self.op_DXYN();
+            }
+            _ => {
+                panic!("Unknown command")
+            }
+        }
     }
 
     fn set_keys() {
