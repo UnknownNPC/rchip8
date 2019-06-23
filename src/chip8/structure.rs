@@ -13,12 +13,12 @@ pub struct Chip8<'a> {
     // program counter
     pub pc: usize,
     pub gfx: [[u8; 64]; 32],
-    delay_timer: u8,
-    sound_timer: u8,
+    pub delay_timer: u8,
+    pub sound_timer: u8,
     pub stack: [u16; 16],
     pub sp: usize,
     // HEX based keypad (0x0-0xF)
-    key: [u16; 16],
+    pub key: [u16; 16],
 }
 
 impl<'a> Chip8<'a> {

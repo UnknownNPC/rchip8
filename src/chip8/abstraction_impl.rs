@@ -215,23 +215,46 @@ impl<'a> Action for Chip8<'a> {
                 }
             }
         }
+        self.pc = self.pc + 2;
         // draw_flag = true
     }
 
     fn op_EX9E(&mut self) {
-        unimplemented!()
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        if self.key[self.v[vx_index] as usize] != 0 {
+            self.pc = self.pc + 4;
+        } else {
+            self.pc = self.pc + 2;
+        }
     }
 
     fn op_EXA1(&mut self) {
-        unimplemented!()
+        let vx_index = (self.opcode & 0x0F00 >> 8) as usize;
+        if self.key[self.v[vx_index] as usize] == 0 {
+            self.pc = self.pc + 4;
+        } else {
+            self.pc = self.pc + 2;
+        }
     }
 
     fn op_FX07(&mut self) {
-        unimplemented!()
+        self.v[(self.opcode & 0x0F00 >> 8) as usize] = self.delay_timer;
+        self.pc = self.pc + 2;
     }
 
     fn op_FX0A(&mut self) {
-        unimplemented!()
+        let mut is_key_clicked = false;
+
+        for (index, key) in self.key.iter().enumerate() {
+            if *key != 0 {
+                self.v[(self.opcode & 0x0F00 >> 8) as usize] = index as u8;
+                is_key_clicked = true;
+            }
+        }
+
+        if is_key_clicked {
+            self.pc = self.pc + 2
+        }
     }
 
     fn op_FX15(&mut self) {
