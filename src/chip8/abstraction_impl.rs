@@ -195,7 +195,27 @@ impl<'a> Action for Chip8<'a> {
     }
 
     fn op_DXYN(&mut self) {
-        unimplemented!()
+        let vx_value = (self.opcode & 0x0F00 >> 8) as usize;
+        let vy_value = (self.opcode & 0x00F0 >> 4) as usize;
+        let height = self.opcode & 0x000F;
+
+        self.v[0xF] = 0;
+
+        for y_line in vy_value..height as usize {
+            let pixel = self.memory[(self.i + y_line as u16) as usize];
+            for x_line in vx_value..8 {
+                if (pixel & (0x80 >> x_line as u8)) != 0 {
+                    let gfx_index = (vx_value + x_line + (vy_value + y_line)) as usize;
+                    if self.gfx[gfx_index].iter().all(|e| *e == 1) {
+                        self.v[0xF] = 1
+                    }
+                    for el in self.gfx[gfx_index].iter_mut() {
+                        *el = *el ^ 1
+                    };
+                }
+            }
+        }
+        // draw_flag = true
     }
 
     fn op_EX9E(&mut self) {
